@@ -1,0 +1,31 @@
+font.size: 26
+figure.titlesize: 26
+lines.markersize: 20
+lines.linewidth: 0
+axes.grid: False
+lines.marker: .
+
+xtick.direction: out
+ytick.direction: out
+xtick.top: False
+ytick.right:  False
+# =========== major ticks ===========
+xtick.major.pad: 9
+ytick.major.pad: 9
+xtick.major.size: 12
+ytick.major.size: 12
+xtick.major.width: 2.5
+ytick.major.width: 2.5
+# =========== minor ticks ===========
+xtick.minor.size: 6
+ytick.minor.size: 6
+xtick.minor.width: 2.5
+ytick.minor.width: 2.5
+axes.linewidth: 2.5
+
+axes.autolimit_mode: round_numbers
+axes.labelweight: normal
+axes.titleweight: normal
+figure.titleweight: normal
+font.weight: normal
+
