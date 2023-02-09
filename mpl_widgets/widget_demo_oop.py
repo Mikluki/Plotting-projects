@@ -47,9 +47,9 @@ class MyData:
                                                         self.nRegs))
         # ====// Main Plot \\ ====
         self.fig, self.ax = plt.subplots(figsize=(10, 7))
-        self.ax.plot(self.ox, self.oy, color='r')
+        self.line, = self.ax.plot(self.ox, self.oy, color='r')
         for idx, c in zip(self.idxRegs, self.regColors):
-            self.line, = self.ax.plot(self.ox[idx], self.oy[idx], color=c)
+            self.ax.plot(self.ox[idx], self.oy[idx], color=c)
         # ax.set_title('Name')
         self.ax.set_xlabel('Frequency (GHz)')
         self.ax.set_ylabel('S$_{11}$ (dB)')
@@ -86,10 +86,9 @@ class MyData:
                     valstep=vstep)
 
     def update(self, val):
+        # self.ax.clear()
         # self.ax.plot(self.ox, self.oy - val, color='r')
-        print(np.shape(self.ox))
-        print(np.shape(self.oy))
-        self.line.set_ydata(self.oy)
+        self.line.set_ydata(self.oy - val)
 
 
 
