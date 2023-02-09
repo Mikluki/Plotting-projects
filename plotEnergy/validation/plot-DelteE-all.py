@@ -76,6 +76,7 @@ def plot_Energies_in_dir(Samp):
     fig, ax = plt.subplots(figsize=(20, 12))
 
     ax.plot(Samp.mlipEnergy, Samp.dftEnergy)
+    # ax.axline((0, -40), (-45, 1), linestyle='-', color='black', linewidth=10)
 
     # ax.set_xlim(-10, 110)
     # ax.set_ylim(0, None)
