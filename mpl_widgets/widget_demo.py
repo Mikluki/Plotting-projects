@@ -16,12 +16,12 @@ def create_slder(ax, name='val', orient='vertical', color='C0',
                   valstep=vstep)
 
 
-def update_region(yval):
+def update_region(val):
     ax.clear()
 
     ax.plot(ox[idxL], oy[idxL], 'C0')
     ax.plot(ox[idxR], oy[idxR], 'C0')
-    ax.plot(ox[idxR1], oy[idxR1]-yval, 'C1')
+    ax.plot(ox[idxR1], oy[idxR1]-val, 'C1')
 
     ax.set_xlabel('Frequency (GHz)')
     ax.set_ylabel('S$_{11}$ (dB)')
