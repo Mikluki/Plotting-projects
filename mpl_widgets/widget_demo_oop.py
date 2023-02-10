@@ -52,8 +52,11 @@ class MyData:
         self.fig, self.ax = plt.subplots(figsize=(10, 7))
         self.line, = self.ax.plot(self.ox, self.oy, color='r')
 
+        self.regLines = []
         for idx, c in zip(self.idxRegs, self.regColors):
-            self.ax.plot(self.ox[idx], self.oy[idx], mfc=c, color=c)
+            line, = self.ax.plot(self.ox[idx], self.oy[idx], mfc=c, color=c)
+            self.regLines.append(line)
+        print(self.regLines)
 
         # ax.set_title('Name')
         self.ax.set_xlabel('Frequency (GHz)')
@@ -67,7 +70,7 @@ class MyData:
         sliderW = 0.05
         sliderL = 0.8
         vmin = 0
-        vmax = 7
+        vmax = 10
         vinit = 0
         vstep = 0.5
         self.all_Sliders = []
@@ -116,6 +119,8 @@ class MyData:
             self.oy = self.oy + regZeros
 
             self.line.set_ydata(self.oy)
+            for line, idx in zip(self.regLines, self.idxRegs):
+                line.set_ydata(self.oy[idx])
         return updateFun
 
 
@@ -126,24 +131,6 @@ class MyData:
 
     def recalc_oy(self, val):
         self.oy = self.oy - val
-
-# def update_region(yval):
-#     ax.clear()
-
-#     ax.set_xlabel('Frequency (GHz)')
-#     ax.set_ylabel('S$_{11}$ (dB)')
-#     ax.set_ylim(-15, 0)
-
-#     plt.draw()
-
-
-
-
-# sliders = [create_slder(ax=ax, color=c) for ax, c in zip(sl_axes, regColors)]
-
-# sliders[0].on_changed(update_region)
-# # slider2.on_changed(update_w1)
-# # slider3.on_changed(update_w1)
 
 
 
