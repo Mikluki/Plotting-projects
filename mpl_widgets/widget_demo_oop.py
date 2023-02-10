@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from numpy.random import normal
+# from numpy.random import normal
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
@@ -19,8 +19,10 @@ class MyData:
     def init_ox_oy(self, yval, fmin, fmax, n_points,):
 
         self.ox = np.linspace(fmin, fmax, n_points,)
+        rng = np.random.default_rng(2077)
         self.oy = np.full((len(self.ox)), yval) + \
-            normal(scale=0.5, size=len(self.ox))
+            rng.normal(scale=0.5, size=len(self.ox))
+
 
     def init_regions(self, xReg_min, xReg_max):
 
@@ -56,19 +58,21 @@ class MyData:
         for idx, c in zip(self.idxRegs, self.regColors):
             line, = self.ax.plot(self.ox[idx], self.oy[idx], mfc=c, color=c)
             self.regLines.append(line)
-        print(self.regLines)
 
         # ax.set_title('Name')
         self.ax.set_xlabel('Frequency (GHz)')
         self.ax.set_ylabel('S$_{11}$ (dB)')
         self.ax.set_ylim(-15, 0)
 
+
     def init_sliders(self):
-        plt.subplots_adjust(right=0.75)
-        sliderX = 0.8
-        sliderY = 0.1
         sliderW = 0.05
+        sliderX = 0.95 - sliderW*len(self.regNames)
+        sliderY = 0.1
         sliderL = 0.8
+
+        hSpace = 0.10
+        plt.subplots_adjust(right=1 - hSpace - sliderW*len(self.regNames))
         vmin = 0
         vmax = 10
         vinit = 0
@@ -99,10 +103,11 @@ class MyData:
                     valmin=vmin, valmax=vmax, valinit=vinit,
                     valstep=vstep)
 
+
     def init_updateFunc(self, mySlider, idxReg):
         def updateFun(val):
             print(mySlider.label)
-            print(val)
+            # print(val)
             mySlider.new_val = val
             if mySlider.new_val > mySlider.prev_val:
                 add = -(val-mySlider.prev_val)
@@ -110,27 +115,21 @@ class MyData:
                 add = (mySlider.prev_val-val)
             mySlider.prev_val = val
             print('add', add)
-
-            # zeros = create zero array size of oy
-            regZeros = np.zeros(np.shape(self.oy))
-            # fill zeros with valls at indexes
-            np.put(regZeros, [idxReg], add)
-            # add to original array
-            self.oy = self.oy + regZeros
-
+            # recalc self.oy
+            self.recalc_oy(idxReg, add)
+            # update plot
             self.line.set_ydata(self.oy)
             for line, idx in zip(self.regLines, self.idxRegs):
                 line.set_ydata(self.oy[idx])
         return updateFun
 
-
-    def update(self, val):
-        [print(sl.label) for sl in self.all_Sliders]
-        print('^---^')
-        self.line.set_ydata(self.oy - val)
-
-    def recalc_oy(self, val):
-        self.oy = self.oy - val
+    def recalc_oy(self, idxReg, add):
+        # zeros = create zero array size of oy
+        regZeros = np.zeros(np.shape(self.oy))
+        # fill zeros with valls at indexes
+        np.put(regZeros, [idxReg], add)
+        # add to original array
+        self.oy = self.oy + regZeros
 
 
 
