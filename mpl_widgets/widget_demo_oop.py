@@ -5,12 +5,26 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
 
+def lossFunc1(ox, oy, xmin, xmax, T, power):
+    """T - threshold
+    above T = sum[max[(Y-T),0]^power]
+    below T = sum[min[(Y-T),0]/2]
+    """
+    idx = np.where((ox >= xmin) & (ox <= xmax))
+    aboveT = np.sum(np.maximum((oy[idx] - T), 0)**power)
+    belowT = np.sum(np.minimum((oy[idx] - T), 0))/2
+
+    return aboveT + belowT
+
+
+
 class MyData:
     def __init__(self, yval, fmin, fmax, n_points,
                  xReg_min, xReg_max, nRegions):
         self.nRegs = nRegions
-        self.init_ox_oy(yval, fmin, fmax, n_points,)
-        self.init_regions(xReg_min, xReg_max)
+        self.xReg_min, self.xReg_max = xReg_min, xReg_max
+        self.init_ox_oy(yval, fmin, fmax, n_points)
+        self.init_regions()
 
         self.init_plot()
         self.init_sliders()
@@ -19,23 +33,22 @@ class MyData:
     def init_ox_oy(self, yval, fmin, fmax, n_points,):
 
         self.ox = np.linspace(fmin, fmax, n_points,)
-        rng = np.random.default_rng(2077)
+        rng = np.random.default_rng(20654)
         self.oy = np.full((len(self.ox)), yval) + \
             rng.normal(scale=0.5, size=len(self.ox))
 
 
-    def init_regions(self, xReg_min, xReg_max):
+    def init_regions(self):
 
         # ==== Get list of edges ====
-        dr = (xReg_max - xReg_min)/self.nRegs
-        # xEdge1 = xReg_min + dr
-        # xEdge2 = xReg_min + dr*2
-        xEdges = [xReg_min + dr*i for i in range(self.nRegs)]
-        xEdges.append(xReg_max)
+        dr = (self.xReg_max - self.xReg_min)/self.nRegs
+        # xEdge1 = self.xReg_min + dr
+        xEdges = [self.xReg_min + dr*i for i in range(self.nRegs)]
+        xEdges.append(self.xReg_max)
 
         # ==== Get list of region indexes ====
         self.idxRegs = [np.where((self.ox >= xEdges[i]) & \
-                                    (self.ox <= xEdges[i+1]))
+                                    (self.ox < xEdges[i+1]))
                             for i in range(self.nRegs)]
         self.regNames = [f'r{i}' for i in range(self.nRegs)]
 
@@ -106,17 +119,19 @@ class MyData:
 
     def init_updateFunc(self, mySlider, idxReg):
         def updateFun(val):
-            print(mySlider.label)
-            # print(val)
+            # print(mySlider.label)
+            # remeber prev slider value: choose add or subtract
             mySlider.new_val = val
             if mySlider.new_val > mySlider.prev_val:
                 add = -(val-mySlider.prev_val)
             else:
                 add = (mySlider.prev_val-val)
             mySlider.prev_val = val
-            print('add', add)
+            # print('add', add)
             # recalc self.oy
             self.recalc_oy(idxReg, add)
+            print('Loss =',lossFunc1(Data.ox, Data.oy, Data.xReg_min, Data.xReg_max,
+                                     T=threshold, power=power))
             # update plot
             self.line.set_ydata(self.oy)
             for line, idx in zip(self.regLines, self.idxRegs):
@@ -143,7 +158,13 @@ nRegions = 3
 xReg_min = 50
 xReg_max = 105
 
+# ==== Loss func params====
+threshold = - 8
+power = 2.5
+
 Data = MyData(yval, fmin, fmax, n_points,
               xReg_min, xReg_max, nRegions)
 
+print(lossFunc1(Data.ox, Data.oy, Data.xReg_min, Data.xReg_max,
+      T=threshold, power=power))
 plt.show()
