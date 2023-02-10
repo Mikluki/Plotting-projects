@@ -6,22 +6,23 @@ from matplotlib.widgets import Slider
 
 
 class MyData:
-    def __init__(self, yval, fmin, fmax, Np,
+    def __init__(self, yval, fmin, fmax, n_points,
                  xReg_min, xReg_max, nRegions):
         self.nRegs = nRegions
-        self.init_ox_oy(yval, fmin, fmax, Np,)
-        self.cut_to_regions(xReg_min, xReg_max)
+        self.init_ox_oy(yval, fmin, fmax, n_points,)
+        self.init_regions(xReg_min, xReg_max)
 
         self.init_plot()
         self.init_sliders()
 
-    def init_ox_oy(self, yval, fmin, fmax, Np,):
 
-        self.ox = np.linspace(fmin, fmax, Np,)
+    def init_ox_oy(self, yval, fmin, fmax, n_points,):
+
+        self.ox = np.linspace(fmin, fmax, n_points,)
         self.oy = np.full((len(self.ox)), yval) + \
             normal(scale=0.5, size=len(self.ox))
 
-    def cut_to_regions(self, xReg_min, xReg_max):
+    def init_regions(self, xReg_min, xReg_max):
 
         # ==== Get list of edges ====
         dr = (xReg_max - xReg_min)/self.nRegs
@@ -34,6 +35,8 @@ class MyData:
         self.idxRegs = [np.where((self.ox >= xEdges[i]) & \
                                     (self.ox <= xEdges[i+1]))
                             for i in range(self.nRegs)]
+        self.regNames = [f'r{i}' for i in range(self.nRegs)]
+
 
     def init_plot(self):
         plt.rcParams.update(
@@ -48,8 +51,10 @@ class MyData:
         # ====// Main Plot \\ ====
         self.fig, self.ax = plt.subplots(figsize=(10, 7))
         self.line, = self.ax.plot(self.ox, self.oy, color='r')
+
         for idx, c in zip(self.idxRegs, self.regColors):
-            self.ax.plot(self.ox[idx], self.oy[idx], color=c)
+            self.ax.plot(self.ox[idx], self.oy[idx], mfc=c, color=c)
+
         # ax.set_title('Name')
         self.ax.set_xlabel('Frequency (GHz)')
         self.ax.set_ylabel('S$_{11}$ (dB)')
@@ -65,19 +70,21 @@ class MyData:
         vmax = 7
         vinit = 0
         vstep = 0.5
-        self.Sliders = []
-        for i, c in enumerate(self.regColors):
-            slider = self.create_slder(
+        self.all_Sliders = []
+        for i, (rname, c) in enumerate(zip(self.regNames, self.regColors)):
+
+            mySlider = self.create_slider(
                 sliderX+sliderW*i,sliderY, sliderW, sliderL,
                 vmin=vmin, vmax=vmax, vinit=vinit, vstep=vstep,
-                name=f'[{i}]', orient='vertical', color=c)
+                name=rname, orient='vertical', color=c)
 
-            slider.on_changed(self.update)
-            self.Sliders.append(slider)
+            updateFun = self.init_updateFunc(mySlider)
+            mySlider.on_changed(updateFun)
+            self.all_Sliders.append(mySlider)
 
 
-    def create_slder(self, sliderX, sliderY, sliderW, sliderL,
-                    name='val', orient='vertical', color='C0',
+    def create_slider(self, sliderX, sliderY, sliderW, sliderL,
+                    name, orient='vertical', color='C0',
                     vmin=0, vmax=7, vinit=0, vstep=0.5):
 
         ax = plt.axes([sliderX, sliderY, sliderW, sliderL])
@@ -85,12 +92,32 @@ class MyData:
                     valmin=vmin, valmax=vmax, valinit=vinit,
                     valstep=vstep)
 
+    def init_updateFunc(self, mySlider):
+        def updateFun(val):
+            print(mySlider.label)
+            self.val = val
+            print(self.val)
+        return updateFun
+
+    # def init_updateFuncs(self):
+    #     self.updateFuncs = []
+    #     for i, regName in enumerate(self.regNames):
+    #         self.updateFuncs.append(self.factory(regName))
+    # def factory(self, Slider):
+    #     def f(val):
+    #         print(funcname, val)
+    #         self.val = self.val + val
+    #         print(self.val)
+    #     return f
+
+
     def update(self, val):
-        # self.ax.clear()
-        # self.ax.plot(self.ox, self.oy - val, color='r')
+        [print(sl.label) for sl in self.all_Sliders]
+        print('^---^')
         self.line.set_ydata(self.oy - val)
 
-
+    def recalc_oy(self, val):
+        self.oy = self.oy - val
 
 # def update_region(yval):
 #     ax.clear()
@@ -116,13 +143,13 @@ class MyData:
 yval = -2
 fmin = 20
 fmax = 190
-Np = 30
+n_points = 30
 # ==== Define regions ====
 nRegions = 3
 xReg_min = 50
 xReg_max = 105
 
-Data = MyData(yval, fmin, fmax, Np,
+Data = MyData(yval, fmin, fmax, n_points,
               xReg_min, xReg_max, nRegions)
 
 plt.show()
