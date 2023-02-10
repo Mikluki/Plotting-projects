@@ -71,14 +71,17 @@ class MyData:
         vinit = 0
         vstep = 0.5
         self.all_Sliders = []
-        for i, (rname, c) in enumerate(zip(self.regNames, self.regColors)):
+        for i, (idxReg, rname, c) in enumerate(
+                zip(self.idxRegs, self.regNames, self.regColors)):
 
             mySlider = self.create_slider(
                 sliderX+sliderW*i,sliderY, sliderW, sliderL,
                 vmin=vmin, vmax=vmax, vinit=vinit, vstep=vstep,
                 name=rname, orient='vertical', color=c)
+            mySlider.__dict__['prev_val'] = 0
+            mySlider.__dict__['new_val'] = 0
+            updateFun = self.init_updateFunc(mySlider, idxReg)
 
-            updateFun = self.init_updateFunc(mySlider)
             mySlider.on_changed(updateFun)
             self.all_Sliders.append(mySlider)
 
@@ -86,29 +89,34 @@ class MyData:
     def create_slider(self, sliderX, sliderY, sliderW, sliderL,
                     name, orient='vertical', color='C0',
                     vmin=0, vmax=7, vinit=0, vstep=0.5):
-
+        # init slider axis
         ax = plt.axes([sliderX, sliderY, sliderW, sliderL])
+        # create slider class
         return Slider(ax, name, orientation=orient, color=color,
                     valmin=vmin, valmax=vmax, valinit=vinit,
                     valstep=vstep)
 
-    def init_updateFunc(self, mySlider):
+    def init_updateFunc(self, mySlider, idxReg):
         def updateFun(val):
             print(mySlider.label)
-            self.val = val
-            print(self.val)
-        return updateFun
+            print(val)
+            mySlider.new_val = val
+            if mySlider.new_val > mySlider.prev_val:
+                add = -(val-mySlider.prev_val)
+            else:
+                add = (mySlider.prev_val-val)
+            mySlider.prev_val = val
+            print('add', add)
 
-    # def init_updateFuncs(self):
-    #     self.updateFuncs = []
-    #     for i, regName in enumerate(self.regNames):
-    #         self.updateFuncs.append(self.factory(regName))
-    # def factory(self, Slider):
-    #     def f(val):
-    #         print(funcname, val)
-    #         self.val = self.val + val
-    #         print(self.val)
-    #     return f
+            # zeros = create zero array size of oy
+            regZeros = np.zeros(np.shape(self.oy))
+            # fill zeros with valls at indexes
+            np.put(regZeros, [idxReg], add)
+            # add to original array
+            self.oy = self.oy + regZeros
+
+            self.line.set_ydata(self.oy)
+        return updateFun
 
 
     def update(self, val):
