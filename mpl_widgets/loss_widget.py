@@ -1,30 +1,28 @@
-import pandas as pd
 import numpy as np
-# from numpy.random import normal
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider
 
 
-def lossFunc1(ox, oy, xmin, xmax, T, power):
-    """T - threshold
-    above T = sum[max[(Y-T),0]^power]
-    below T = sum[min[(Y-T),0]/2]
-    """
-    idx = np.where((ox >= xmin) & (ox <= xmax))
-    aboveT = np.sum(np.maximum((oy[idx] - T), 0)**power)
-    belowT = np.sum(np.minimum((oy[idx] - T), 0))/2
-
-    return aboveT + belowT
-
-
-
 class MyData:
+    '''Attributes:
+    self.Loss       - Loss to calc Loss.val         [class]
+    self.regSliders - Sliders for each region       [list of classes]
+    self.regColors  - colors for each region        [list of np.arrays]
+    self.regNames   - names for each region         [list of strings]
+    self.regLines   - Lines in Axes for each region [list of classes]
+    self.idxRegs    - indexes for each region       [list of np.arrays]
+    self.ax         - main Axes for plotting        [class]
+    self.line       - main Line in Axes             [class]
+    '''
     def __init__(self, yval, fmin, fmax, n_points,
-                 xReg_min, xReg_max, nRegions):
+                 xReg_min, xReg_max, nRegions,
+                 lossPower, lossThreshold):
         self.nRegs = nRegions
         self.xReg_min, self.xReg_max = xReg_min, xReg_max
         self.init_ox_oy(yval, fmin, fmax, n_points)
         self.init_regions()
+
+        self.Loss = Loss(self, power=lossPower, threshold = lossThreshold)
 
         self.init_plot()
         self.init_sliders()
@@ -61,10 +59,9 @@ class MyData:
              'axes.grid': True, 'axes.autolimit_mode': 'round_numbers'})
         # ==== Get colors ====
         # self.regColors = plt.cm.plasma_r(np.linspace(0.15, 0.85, self.nRegs))
-        self.regColors = plt.cm.viridis_r(np.linspace(0.15, 0.85, \
-                                                        self.nRegs))
+        self.regColors = plt.cm.viridis_r(np.linspace(0.15, 0.85, self.nRegs))
         # ====// Main Plot \\ ====
-        self.fig, self.ax = plt.subplots(figsize=(10, 7))
+        fig, self.ax = plt.subplots(figsize=(10, 7))
         self.line, = self.ax.plot(self.ox, self.oy, color='r')
 
         self.regLines = []
@@ -72,7 +69,11 @@ class MyData:
             line, = self.ax.plot(self.ox[idx], self.oy[idx], mfc=c, color=c)
             self.regLines.append(line)
 
-        # ax.set_title('Name')
+        # lossStr = lossFunc1(self.ox, self.oy, self.xReg_min, self.xReg_max,
+        #           T=threshold, power=power)
+        self.Loss.calc()
+        self.text = self.ax.text(0.25, 0.85, 'Loss = %1.2f' % self.Loss.val)
+        # self.ax.set_title('Name')
         self.ax.set_xlabel('Frequency (GHz)')
         self.ax.set_ylabel('S$_{11}$ (dB)')
         self.ax.set_ylim(-15, 0)
@@ -90,23 +91,24 @@ class MyData:
         vmax = 10
         vinit = 0
         vstep = 0.5
-        self.all_Sliders = []
+        self.regSliders = []
         for i, (idxReg, rname, c) in enumerate(
                 zip(self.idxRegs, self.regNames, self.regColors)):
 
-            mySlider = self.create_slider(
+            mySlider = self.create_Slider(
                 sliderX+sliderW*i,sliderY, sliderW, sliderL,
                 vmin=vmin, vmax=vmax, vinit=vinit, vstep=vstep,
                 name=rname, orient='vertical', color=c)
+            mySlider.__dict__['name'] = rname
             mySlider.__dict__['prev_val'] = 0
             mySlider.__dict__['new_val'] = 0
-            updateFun = self.init_updateFunc(mySlider, idxReg)
+            updateFun = self.create_updateFunc(mySlider, idxReg)
 
             mySlider.on_changed(updateFun)
-            self.all_Sliders.append(mySlider)
+            self.regSliders.append(mySlider)
 
 
-    def create_slider(self, sliderX, sliderY, sliderW, sliderL,
+    def create_Slider(self, sliderX, sliderY, sliderW, sliderL,
                     name, orient='vertical', color='C0',
                     vmin=0, vmax=7, vinit=0, vstep=0.5):
         # init slider axis
@@ -116,27 +118,27 @@ class MyData:
                     valmin=vmin, valmax=vmax, valinit=vinit,
                     valstep=vstep)
 
-
-    def init_updateFunc(self, mySlider, idxReg):
-        def updateFun(val):
-            # print(mySlider.label)
-            # remeber prev slider value: choose add or subtract
+    def create_updateFunc(self, mySlider, idxReg):
+        def updateFunc(val):
+            print(mySlider.name)
+            # === //remeber prev slider value: choose add or subtract
             mySlider.new_val = val
             if mySlider.new_val > mySlider.prev_val:
                 add = -(val-mySlider.prev_val)
             else:
                 add = (mySlider.prev_val-val)
             mySlider.prev_val = val
-            # print('add', add)
-            # recalc self.oy
+
+            # === //recalc self.oy
             self.recalc_oy(idxReg, add)
-            print('Loss =',lossFunc1(Data.ox, Data.oy, Data.xReg_min, Data.xReg_max,
-                                     T=threshold, power=power))
-            # update plot
+            self.Loss.calc()
+
+            # === //update plot
             self.line.set_ydata(self.oy)
             for line, idx in zip(self.regLines, self.idxRegs):
                 line.set_ydata(self.oy[idx])
-        return updateFun
+            self.text.set_text('Loss = %1.2f' % self.Loss.val)
+        return updateFunc
 
     def recalc_oy(self, idxReg, add):
         # zeros = create zero array size of oy
@@ -145,6 +147,26 @@ class MyData:
         np.put(regZeros, [idxReg], add)
         # add to original array
         self.oy = self.oy + regZeros
+
+
+class Loss:
+    def __init__(self, Data, power, threshold):
+        self.Data = Data
+        self.p = power
+        self.T = threshold
+        print('power =', self.p, '   threshold = ', self.T)
+    def calc(self):
+        """T - threshold
+        above T = sum[max[(Y-T),0]^power]
+        below T = sum[min[(Y-T),0]/3]
+        """
+        idx = np.where((self.Data.ox >= self.Data.xReg_min) \
+                        & (self.Data.ox <= self.Data.xReg_max))
+        aboveT = np.sum(np.maximum((self.Data.oy[idx] - self.T), 0)**self.p)
+        belowT = np.sum(np.minimum((self.Data.oy[idx] - self.T), 0))/3
+
+        self.val = aboveT + belowT
+        print('Loss =', self.val)
 
 
 
@@ -156,15 +178,19 @@ n_points = 30
 # ==== Define regions ====
 nRegions = 3
 xReg_min = 50
-xReg_max = 105
+xReg_max = 110
 
-# ==== Loss func params====
+# ==== Loss func params ====
 threshold = - 8
-power = 2.5
+lossPower = 2.5
 
 Data = MyData(yval, fmin, fmax, n_points,
-              xReg_min, xReg_max, nRegions)
+              xReg_min, xReg_max, nRegions,
+              lossPower=lossPower, lossThreshold=threshold)
 
-print(lossFunc1(Data.ox, Data.oy, Data.xReg_min, Data.xReg_max,
-      T=threshold, power=power))
+Data.regSliders[0].val = 5
+print(Data.regSliders[0].val)
+Data.ax.figure.savefig('test.png', bbox_inches='tight')
+print(Data.__doc__)
 plt.show()
+
